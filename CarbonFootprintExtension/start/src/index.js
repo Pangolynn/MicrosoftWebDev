@@ -17,9 +17,22 @@ const clearBtn = document.querySelector('.clear-btn');
 
 //5
 //set up user's api key and region
+function setUpUser(apiKey, regionName) {
+    localStorage.setItem('apiKey', apiKey);
+    localStorage.setItem('regionName', regionName);
+    loading.style.display = 'block';
+    errors.textContent = '';
+    clearBtn.style.display = 'block';
+    // initial call
+    displayCarbonUsage(apiKey, regionName);
+}
 
 //4
 // handle form submission
+function handleSubmit(e) {
+    e.preventDefault();
+    setUpUser(apiKey.value, region.value);
+}
 
 //3 initial checks
 function init() {
@@ -44,6 +57,12 @@ function init() {
     }
 };
 
+function reset(e) {
+    e.preventDefault();
+    // clear local storage for region only
+    localStorage.removeItem('regionName');
+    init();
+}
 
 //2
 // set listeners and start app
