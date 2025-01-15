@@ -1,11 +1,11 @@
 import axios from '../node_modules/axios';
 
-//1
 // form fields
 const form = document.querySelector('.form-data');
 const region = document.querySelector('.region-name');
 const apiKey = document.querySelector('.api-key');
-// results divs
+
+// results
 const errors = document.querySelector('.errors');
 const loading = document.querySelector('.loading');
 const results = document.querySelector('.result-container');
@@ -14,9 +14,26 @@ const fossilfuel = document.querySelector('.fossil-fuel');
 const myregion = document.querySelector('.my-region');
 const clearBtn = document.querySelector('.clear-btn');
 
-//6
+const calculateColor = async (value) => {
+	let co2Scale = [0, 150, 600, 750, 800];
+	let colors = ['#2AA364', '#F5EB4D', '#9E4229', '#381D02', '#381D02'];
+
+	let closestNum = co2Scale.sort((a, b) => {
+		return Math.abs(a - value) - Math.abs(b - value);
+	})[0];
+	// console.log(value + ' is closest to ' + closestNum);
+	let num = (element) => element > closestNum;
+	let scaleIndex = co2Scale.findIndex(num);
+
+	let closestColor = colors[scaleIndex];
+	// console.log(scaleIndex, closestColor);
+
+	chrome.runtime.sendMessage({ action: 'updateIcon', value: { color: closestColor } });
+};
+
+
 //call the API
-async function displayCarbonUsage(apiKey, region) {
+const displayCarbonUsage = async (apiKey, region) => {
     try {
         await axios
             .get('https://api.co2signal.com/v1/latest', {
@@ -30,10 +47,11 @@ async function displayCarbonUsage(apiKey, region) {
             .then((response) => {
                 let C02 = Math.floor(response.data.data.carbonIntensity);
 
-                //calculateColor(C02);
+                calculateColor(C02);
 
                 loading.style.display = 'none';
                 form.style.display = 'none';
+                myregion.textContent = region;
 				usage.textContent =
 					Math.round(response.data.data.carbonIntensity) + ' grams (grams C02 emitted per kilowatt hour)';
 				fossilfuel.textContent =
@@ -42,45 +60,26 @@ async function displayCarbonUsage(apiKey, region) {
 				results.style.display = 'block';
             });
     } catch (error) {
-        console.log(error);
+        // console.log(error);
         loading.style.display = 'none';
         results.style.display = 'none';
         errors.textContent = 'Sorry we have no data for the region you have selected';
     }
 }
 
-calculateColor = async (value) => {
-	let co2Scale = [0, 150, 600, 750, 800];
-	let colors = ['#2AA364', '#F5EB4D', '#9E4229', '#381D02', '#381D02'];
 
-	let closestNum = co2Scale.sort((a, b) => {
-		return Math.abs(a - value) - Math.abs(b - value);
-	})[0];
-	//console.log(value + ' is closest to ' + closestNum);
-	let num = (element) => element > closestNum;
-	let scaleIndex = co2Scale.findIndex(num);
-
-	let closestColor = colors[scaleIndex];
-	//console.log(scaleIndex, closestColor);
-
-	chrome.runtime.sendMessage({ action: 'updateIcon', value: { color: closestColor } });
-};
-
-//5
 //set up user's api key and region
-function setUpUser(apiKey, regionName) {
+function setUpUser(apiKey, region) {
     localStorage.setItem('apiKey', apiKey);
-    localStorage.setItem('regionName', regionName);
+    localStorage.setItem('region', region);
     loading.style.display = 'block';
     errors.textContent = '';
     clearBtn.style.display = 'block';
-    // initial call
-    displayCarbonUsage(apiKey, regionName);
+ 
+    displayCarbonUsage(apiKey, region);
 }
 
-//4
-// handle form submission
-function handleSubmit(e) {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setUpUser(apiKey.value, region.value);
 }
@@ -89,8 +88,15 @@ function handleSubmit(e) {
 function init() {
     //check localStorage
     const storedApiKey = localStorage.getItem('apiKey');
-    const storedRegion = localStorage.getItem('regionName');
+    const storedRegion = localStorage.getItem('region');
     
+    // set icon to green
+    chrome.runtime.sendMessage({
+        action: 'updateIcon',
+            value: {
+                color: 'green',
+            },
+    });
     
     if (storedApiKey === null || storedRegion === null) {
         // we don't have keys, show form
@@ -101,17 +107,17 @@ function init() {
         errors.textContent = '';
     } else {
         // we have keys, show results
-        displayCarbonUsage(storedApiKey, storedRegion);
         results.style.display= 'none';
         form.style.display = 'none';
+        displayCarbonUsage(storedApiKey, storedRegion);
         clearBtn.style.display = 'block';
     }
 };
 
-function reset(e) {
+const reset = async (e) => {
     e.preventDefault();
     // clear local storage for region only
-    localStorage.removeItem('regionName');
+    localStorage.removeItem('region');
     init();
 }
 
