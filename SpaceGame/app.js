@@ -17,13 +17,14 @@ window.onload = async () => {
   ctx = canvas.getContext('2d')
   const width = canvas.width;
   const height = canvas.height;
-  // TODO load textures
 
-  // TODO draw black background
+  const heroImg = await loadTexture('assets/player.png');
+  const monsterImg = await loadTexture('assets/enemyShip.png');
+
   ctx.fillStyle = 'black';
 
   ctx.fillRect(0,0, width, height);
-  // TODO draw hero
+  ctx.drawImage(heroImg, canvas.width / 2 - 45, canvas.height - canvas.height / 4 );
   // TODO uncomment the next line when you add enemies to screen
   //createEnemies(ctx, canvas, enemyImg);
 }
